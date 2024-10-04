@@ -57,3 +57,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # package json
 package-lock.json
+
+your_temporal.db*
