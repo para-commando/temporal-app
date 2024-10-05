@@ -30,7 +30,10 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
 
       Logger.log('Starting worker');
 
-      this.worker.run();
+      this.worker.run().catch((err) => {
+        console.error(err);
+        process.exit(1);
+      });
     } catch (err) {
       Logger.error('Failed to initialize a worker:', err);
     }
@@ -40,13 +43,23 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
   //   return this.worker;
   // }
 
+
   async onModuleDestroy() {
     try {
-      await this.worker.shutdown();
-      await this.connection.close();
-      Logger.log('Temporal connection closed successfully.');
+      if (this.worker) {
+        Logger.log('Shutting down Temporal worker...');
+        await this.worker.shutdown();
+        Logger.log('Worker shut down successfully.');
+      }
+
+      if (this.connection) {
+        Logger.log('Closing Temporal connection...');
+        await this.connection.close();
+        Logger.log('Temporal connection closed successfully.');
+      }
+
     } catch (error) {
-      Logger.error('Error during Temporal connection shutdown in workerService:', error);
+      Logger.error('Error during Temporal connection shutdown in WorkerService:', error);
     }
   }
 }
