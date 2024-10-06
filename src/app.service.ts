@@ -1,18 +1,15 @@
 // src/app.service.ts
 import { Injectable } from '@nestjs/common';
-import { TemporalService } from './temporal.service'; // Import the new service
+import { TemporalService } from './temporal/temporal.service'; // Import the new service
 import { v4 as uuidv4 } from 'uuid';
 import { example } from './temporal/workflows';
 import { Logger } from '@nestjs/common';
 
-
 @Injectable()
 export class AppService {
-  constructor(
-    private readonly temporalService: TemporalService,
-  ) {}
+  constructor(private readonly temporalService: TemporalService) {}
 
-  async startOrderWorkflow(orderId: string) {
+  async useCaseOne(orderId: string) {
     try {
       const workflowId = 'workflow-' + uuidv4();
       Logger.log(`🎖️🎖️  ⚔️  workflow starting for id ${workflowId} 🎖️🎖️`);
@@ -27,7 +24,7 @@ export class AppService {
       return 'workflow started successfully with id ' + workflowId;
     } catch (error) {
       Logger.error(
-        '🎖️🎖️  ⚔️  file: app.service.ts:34  ⚔️  AppService  ⚔️  startOrderWorkflow  ⚔️  error 🎖️🎖️',
+        '🎖️🎖️  ⚔️  file: app.service.ts:34  ⚔️  AppService  ⚔️  useCaseOne  ⚔️  error 🎖️🎖️',
         error,
       );
       throw new Error(

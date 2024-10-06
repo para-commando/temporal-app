@@ -2,7 +2,7 @@
 import { Controller, Post, Body, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import { Logger } from '@nestjs/common';
-    
+
 @Controller('orders')
 export class AppController {
   constructor(private readonly appService: AppService) {}
@@ -16,10 +16,11 @@ export class AppController {
    Logger.log('status check api invoked');
     return 'All good!';
   }
-  @Post('start')
-  async startOrder(@Body('orderId') orderId: string) {
-    Logger.log('start api called');
 
-    return await this.appService.startOrderWorkflow(orderId);
+  // this example shows a simple use case of temporal workflow implementation
+  @Post('usecase-1')
+  async useCaseOne(@Body('orderId') orderId: string) {
+    Logger.log('usecase-1 api called');
+    return await this.appService.useCaseOne(orderId);
   }
 }
