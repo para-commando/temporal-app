@@ -3,39 +3,58 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Connection, Client } from '@temporalio/client';
 import { Logger } from '@nestjs/common';
 import { NativeConnection, Worker } from '@temporalio/worker';
-import * as activities from './activities';
+import * as useCaseOneActivities from './usecase-one/use-case-one.activities';
+import * as useCaseTwoActivities from './usecase-two/use-case-two.activities';
 
 @Injectable()
 export class WorkerService implements OnModuleInit, OnModuleDestroy {
-  private worker: Worker;
+  private workerOne: Worker;
+  private workerTwo: Worker;
   private connection: NativeConnection;
 
   async onModuleInit() {
     try {
-      Logger.log('Initializing a worker:');
+      Logger.log('Initializing workers:');
+
       this.connection = await NativeConnection.connect({
         address: 'localhost:7233',
         // TLS and gRPC metadata configuration goes here.
       });
-      // Step 2: Register Workflows and Activities with the Worker.
-      this.worker = await Worker.create({
-        connection:this.connection,
+
+      Logger.log('initializing workerOne');
+
+      this.workerOne = await Worker.create({
+        connection: this.connection,
         namespace: 'default',
-        taskQueue: 'my-task-queue',
+        taskQueue: 'use-case-one-task-queue',
         // Workflows are registered using a path as they run in a separate JS context.
-        workflowsPath: require.resolve('./workflows'),
-        activities,
+        workflowsPath: require.resolve(
+          './usecase-one/use-case-one-parent-workflows',
+        ),
+        activities: useCaseOneActivities,
       });
-      Logger.log('worker initialized successfully');
+      Logger.log('workerOne initialized successfully');
 
-      Logger.log('Starting worker');
+      Logger.log('initializing workerTwo');
 
-      this.worker.run().catch((err) => {
-        console.error(err);
-        process.exit(1);
+      this.workerTwo = await Worker.create({
+        connection: this.connection,
+        namespace: 'default',
+        taskQueue: 'use-case-two-task-queue',
+        // Workflows are registered using a path as they run in a separate JS context.
+        workflowsPath: require.resolve('./usecase-two/use-case-two-parent-workflows'),
+        activities: useCaseTwoActivities,
       });
+      Logger.log('workerTwo initialized successfully');
+
+      Logger.log('Starting initialized workers');
+
+      Promise.all([this.workerOne.run(), this.workerTwo.run()]);
+
+      Logger.log('Workers started successfully');
     } catch (err) {
       Logger.error('Failed to initialize a worker:', err);
+      process.exit(1);
     }
   }
 
@@ -43,23 +62,21 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
   //   return this.worker;
   // }
 
-
   async onModuleDestroy() {
     try {
-      if (this.worker) {
-        Logger.log('Shutting down Temporal worker...');
-        await this.worker.shutdown();
-        Logger.log('Worker shut down successfully.');
-      }
+      Logger.log('Shutting down Temporal workers...');
+      await Promise.all([this.workerOne.run(), this.workerTwo.run()]);
+      Logger.log('Workers shut down successfully.');
 
-      if (this.connection) {
-        Logger.log('Closing Temporal connection...');
-        await this.connection.close();
-        Logger.log('Temporal connection closed successfully.');
-      }
-
+      Logger.log('Closing Temporal connection...');
+      await this.connection.close();
+      Logger.log('Temporal connection closed successfully.');
     } catch (error) {
-      Logger.error('Error during Temporal connection shutdown in WorkerService:', error);
+      Logger.error(
+        'Error during Temporal connection shutdown in WorkerService:',
+        error,
+      );
+      process.exit(1);
     }
   }
 }
