@@ -13,7 +13,7 @@ export class TemporalService implements OnModuleInit, OnModuleDestroy {
       this.connection = await Connection.connect({ address: 'localhost:7233' });
       this.client = new Client({
         connection: this.connection,
-        namespace: 'default', // connects to 'default' namespace if not specified
+    //    namespace: 'default', // connects to 'default' namespace if not specified
       });
 
       Logger.log('Temporal client initialized successfully.');

@@ -1,10 +1,9 @@
 // src/temporal/temporal.service.ts
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { Connection, Client } from '@temporalio/client';
 import { Logger } from '@nestjs/common';
 import { NativeConnection, Worker } from '@temporalio/worker';
-import * as useCaseOneActivities from './usecase-one/use-case-one.activities';
-import * as useCaseTwoActivities from './usecase-two/use-case-two.activities';
+import * as useCaseOneActivities from '../usecase-one/use-case-one.activities';
+import * as useCaseTwoActivities from '../usecase-two/use-case-two.activities';
 
 @Injectable()
 export class WorkerService implements OnModuleInit, OnModuleDestroy {
@@ -29,7 +28,7 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
         taskQueue: 'use-case-one-task-queue',
         // Workflows are registered using a path as they run in a separate JS context.
         workflowsPath: require.resolve(
-          './usecase-one/use-case-one-parent-workflows',
+          '../usecase-one/use-case-one-parent-workflows',
         ),
         activities: useCaseOneActivities,
       });
@@ -42,7 +41,9 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
         namespace: 'default',
         taskQueue: 'use-case-two-task-queue',
         // Workflows are registered using a path as they run in a separate JS context.
-        workflowsPath: require.resolve('./usecase-two/use-case-two-parent-workflows'),
+        workflowsPath: require.resolve(
+          '../usecase-two/use-case-two-parent-workflows',
+        ),
         activities: useCaseTwoActivities,
       });
       Logger.log('workerTwo initialized successfully');

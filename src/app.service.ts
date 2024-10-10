@@ -1,6 +1,6 @@
 // src/app.service.ts
-import { Injectable } from '@nestjs/common';
-import { TemporalService } from './temporal/temporal.service'; // Import the new service
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { TemporalService } from './temporal/services/temporal.service'; // Import the new service
 import { v4 as uuidv4 } from 'uuid';
 import { useCaseOneWorkflow } from './temporal/usecase-one/use-case-one-parent-workflows';
 import { useCaseTwoWorkflow } from './temporal/usecase-two/use-case-two-parent-workflows';
@@ -9,15 +9,18 @@ import { Client } from '@temporalio/client';
 import { defineSignal } from '@temporalio/workflow';
 
 @Injectable()
-export class AppService {
+export class AppService implements OnModuleInit {
   constructor(private readonly temporalService: TemporalService) {}
-  private client:Client=this.temporalService.getClient();
+  private client: Client ;
+
+  onModuleInit() {
+    this.client = this.temporalService.getClient();
+  }
 
   async useCaseOne(orderId: string) {
     try {
       const workflowId = 'workflow-one-' + uuidv4();
       Logger.log(`🎖️🎖️  ⚔️  workflow starting for id ${workflowId} 🎖️🎖️`);
-
 
       const handle = await this.client.workflow.start(useCaseOneWorkflow, {
         taskQueue: 'use-case-one-task-queue',
@@ -39,7 +42,7 @@ export class AppService {
 
   async useCaseTwo(orderId: string) {
     try {
-      const workflowId = 'workflow-usecase-two';
+      const workflowId = 'workflow-usecase-two'+ uuidv4();
       Logger.log(`🎖️🎖️  ⚔️  workflow starting for id ${workflowId} 🎖️🎖️`);
 
       const handle = await this.client.workflow.start(useCaseTwoWorkflow, {
@@ -48,7 +51,7 @@ export class AppService {
         workflowId: workflowId,
       });
 
-      return 'workflow started successfully with id ' + workflowId;
+      return handle;
     } catch (error) {
       Logger.error(
         '🎖️🎖️  ⚔️  file: app.service.ts:34  ⚔️  AppService  ⚔️  useCaseTwo  ⚔️  error 🎖️🎖️',
@@ -60,17 +63,32 @@ export class AppService {
     }
   }
 
-  async useCaseTwoUtilOne(orderId: string) {
+  async useCaseTwoUtilOne(workflowId: string) {
     try {
-      const handle = this.client.workflow.getHandle('workflow-usecase-two');
-      await handle.signal(defineSignal('cancelOrder'));
+      const handle = this.client.workflow.getHandle(workflowId);
+      await handle.cancel();
     } catch (error) {
       Logger.error(
         '🎖️🎖️  ⚔️  file: app.service.ts:34  ⚔️  AppService  ⚔️  useCaseTwoUtilOne  ⚔️  error 🎖️🎖️',
         error,
       );
       throw new Error(
-        `Got exception while starting workflow: ` + error.message,
+        `Got exception while cancelling workflow: ` + error.message,
+      );
+    }
+  }
+
+  async useCaseTwoUtilTwo(workflowId: string) {
+    try {
+      const handle = this.client.workflow.getHandle(workflowId);
+      await handle.signal(defineSignal('cancelOrder'));
+    } catch (error) {
+      Logger.error(
+        '🎖️🎖️  ⚔️  file: app.service.ts:34  ⚔️  AppService  ⚔️  useCaseTwoUtilTwo  ⚔️  error 🎖️🎖️',
+        error,
+      );
+      throw new Error(
+        `Got exception while signalling workflow: ` + error.message,
       );
     }
   }

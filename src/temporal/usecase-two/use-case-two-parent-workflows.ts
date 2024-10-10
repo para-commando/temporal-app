@@ -15,17 +15,12 @@ import { paymentWorkflow } from './use-case-two-child-workflows';
 const cancelSignal = defineSignal('cancelOrder');
 
 /** Main Order Processing Workflow */
-export async function useCaseTwoWorkflow(orderId: string): Promise<string> {
-  let isCanceled = false;
+async function useCaseTwoWorkflow(orderId: string): Promise<string> {
+  let isSignalReceived = false;
 
-  setHandler(cancelSignal, (args?) => {
-    console.log(
-      '🎖️🎖️  ⚔️  file: use-case-two-parent-workflows.ts:14  ⚔️  setHandler  ⚔️  args 🎖️🎖️',
-      args,
-    );
-
-    isCanceled = true;
-    console.log('Order has been cancelled:', orderId);
+  setHandler(cancelSignal, () => {
+    isSignalReceived = true;
+    console.log('signal received from an api call', orderId);
   });
 
   try {
@@ -36,39 +31,53 @@ export async function useCaseTwoWorkflow(orderId: string): Promise<string> {
 
     // A Parent Close Policy determines what happens to a Child Workflow Execution if its Parent changes to a Closed status (Completed, Failed, or Timed Out).
     // WAIT_CANCELLATION_COMPLETED (default): When cancellation is requested for the child workflow, the parent workflow waits until the child workflow has completed its cancellation process (including any cleanup or compensation logic). The parent does not proceed until it receives confirmation that the child workflow has completely finished its cancellation.
+    const workflowId = 'workflow-usecase-two-child' + Math.random();
 
+    console.log(
+      '🎖️🎖️  ⚔️  file: use-case-two-parent-workflows.ts:39  ⚔️  useCaseTwoWorkflow  ⚔️  workflowId 🎖️🎖️',
+      workflowId,
+    );
+// setting the parentClosePolicy to PARENT_CLOSE_POLICY_ABANDON makes the child workflow continue even if parent is closed, and setting the parent to PARENT_CLOSE_POLICY_TERMINATE cancels the child worflow execution by force and if want a graceful stop then use PARENT_CLOSE_POLICY_REQUEST_CANCEL
     const paymentChildWorkflow = await startChild(paymentWorkflow, {
       args: [orderId],
       // workflowId, // add business-meaningful workflow id here
       // // regular workflow options apply here, with two additions (defaults shown):
       cancellationType:
         ChildWorkflowCancellationType.WAIT_CANCELLATION_COMPLETED,
-      parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_TERMINATE,
+      parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_REQUEST_CANCEL,
     });
 
+    // note that if parent workflow is cancelled then its child will also be cancelled irrespective of the below code snippets
     // Step 3: Wait for payment completion or cancellation signal
-    const paymentResult = await Promise.race([
-      paymentChildWorkflow.result(),
-      waitForCancellation(isCanceled),
-    ]);
+     await Promise.race([
+       paymentChildWorkflow.result(),
+       waitForCancellation(isSignalReceived),
+     ]);
 
-    if (isCanceled) {
-      console.log(`Order for ID ${orderId} was canceled.`);
-      return 'Order Canceled';
+    if (isSignalReceived) {
+      console.log(`signal received at parent workflow`);
+      return 'signal received at parent workflow'
+    }
+    else{
+      console.log(`child workflow completed before signal was received`);
+      return "child workflow completed successfully";
     }
 
-    // Step 4: Proceed to shipping if payment is successful
 
-    console.log(`Order for ID ${orderId} has been shipped.`);
-
-    return 'Order Completed';
-  } finally {
+  } catch (error) {
+    console.log(
+      '🎖️🎖️  ⚔️  file: use-case-two-parent-workflows.ts:67  ⚔️  useCaseTwoWorkflow  ⚔️  error 🎖️🎖️',
+      error,
+    );
+    throw error;
   }
 }
 
 /** Helper function to handle cancellation */
-async function waitForCancellation(isCanceled: boolean): Promise<void> {
-  while (!isCanceled) {
+async function waitForCancellation(isSignalReceived: boolean): Promise<void> {
+  while (!isSignalReceived) {
     await sleep(1000); // Check for cancellation every second
   }
 }
+
+export { useCaseTwoWorkflow, paymentWorkflow };
