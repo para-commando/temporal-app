@@ -2,7 +2,6 @@
 export async function placeOrder(orderId: string) {
   console.log(`Order placed: ${orderId}`);
 }
-
 export async function shipOrder(orderId: string) {
   console.log(`Order shipped: ${orderId}`);
 }
