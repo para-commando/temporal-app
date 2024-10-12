@@ -41,4 +41,16 @@ export class AppController {
     Logger.log('usecase-2-util-2 api called');
     return await this.appService.useCaseTwoUtilTwo(payload.workflowId);
   }
+
+  @Post('usecase-3')
+  async useCaseThree(@Body() payload: any) {
+    Logger.log('usecase-3 api called');
+    return await this.appService.useCaseThree(payload);
+  }
+
+  @Post('usecase-3-util-1')
+  async useCaseThreeUtilOne(@Body() payload: any) {
+    Logger.log('usecase-3-util-1 api called');
+    return await this.appService.useCaseThreeUtilOne(payload.parentWorkflowId,payload.childWorkflowId, payload.parentSignalName, payload.childSignalName);
+  }
 }

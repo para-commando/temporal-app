@@ -4,11 +4,13 @@ import { Logger } from '@nestjs/common';
 import { NativeConnection, Worker } from '@temporalio/worker';
 import * as useCaseOneActivities from '../usecase-one/use-case-one.activities';
 import * as useCaseTwoActivities from '../usecase-two/use-case-two.activities';
+import * as useCaseThreeActivities from '../usecase-three/use-case-three.activities';
 
 @Injectable()
 export class WorkerService implements OnModuleInit, OnModuleDestroy {
   private workerOne: Worker;
   private workerTwo: Worker;
+  private workerThree: Worker;
   private connection: NativeConnection;
 
   async onModuleInit() {
@@ -48,9 +50,24 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
       });
       Logger.log('workerTwo initialized successfully');
 
+
+      Logger.log('initializing workerThree');
+
+      this.workerThree = await Worker.create({
+        connection: this.connection,
+        namespace: 'default',
+        taskQueue: 'use-case-three-task-queue',
+        // Workflows are registered using a path as they run in a separate JS context.
+        workflowsPath: require.resolve(
+          '../usecase-three/use-case-three-parent-workflows',
+        ),
+        activities: useCaseThreeActivities,
+      });
+      Logger.log('workerThree initialized successfully');
+
       Logger.log('Starting initialized workers');
 
-      Promise.all([this.workerOne.run(), this.workerTwo.run()]);
+      Promise.all([this.workerOne.run(), this.workerTwo.run(), this.workerThree.run()]);
 
       Logger.log('Workers started successfully');
     } catch (err) {
@@ -66,7 +83,7 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     try {
       Logger.log('Shutting down Temporal workers...');
-      await Promise.all([this.workerOne.run(), this.workerTwo.run()]);
+      await Promise.all([this.workerOne.shutdown(), this.workerTwo.shutdown(),this.workerThree.shutdown()]);
       Logger.log('Workers shut down successfully.');
 
       Logger.log('Closing Temporal connection...');

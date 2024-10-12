@@ -40,7 +40,7 @@ async function useCaseTwoWorkflow(orderId: string): Promise<string> {
 // setting the parentClosePolicy to PARENT_CLOSE_POLICY_ABANDON makes the child workflow continue even if parent is closed, and setting the parent to PARENT_CLOSE_POLICY_TERMINATE cancels the child worflow execution by force and if want a graceful stop then use PARENT_CLOSE_POLICY_REQUEST_CANCEL
     const paymentChildWorkflow = await startChild(paymentWorkflow, {
       args: [orderId],
-      // workflowId, // add business-meaningful workflow id here
+      workflowId, // add business-meaningful workflow id here
       // // regular workflow options apply here, with two additions (defaults shown):
       cancellationType:
         ChildWorkflowCancellationType.WAIT_CANCELLATION_COMPLETED,
